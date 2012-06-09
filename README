@@ -101,7 +101,7 @@ Method are chainable
 --------------------
 
 > var sample = signature(String, Number).returns(Boolean).impl(
->                function(name, count) { return true })
+>                 function(name, count) { return true })
 
 
 
