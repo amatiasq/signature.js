@@ -1,4 +1,3 @@
-
 if (typeof signature === 'function')
 	console.error("types.js should be loaded after signature.js");
 
@@ -80,7 +79,7 @@ signature.Type = (function() {
 		},
 
 		isImpl: function(obj) {
-			return typeof obj === this.type;
+			return typeof obj === this.type || obj instanceof this.clazz;
 		}
 	});
 
@@ -100,7 +99,7 @@ signature.Type = (function() {
 		new TypeofType(String, 'string'),
 		new TypeofType(Function, 'function'),
 
-		new ObjectType(Object, 'Object'),
+		new ObjectType(),
 		new MultiIframeType(Array, 'Array'),
 		new MultiIframeType(Date, 'Date')
 	];
@@ -110,19 +109,19 @@ signature.Type = (function() {
 		new TypeofType(String, 'string').optional(),
 		new TypeofType(Function, 'function').optional(),
 
-		new ObjectType(Object, 'Object').optional(),
+		new ObjectType().optional(),
 		new MultiIframeType(Array, 'Array').optional(),
 		new MultiIframeType(Date, 'Date').optional()
 	];
 
-	function getClassIndex(clazz, type, optional) {
+	function getClassIndex(clazz, typeType, optionalType) {
 		var index = classes.indexOf(clazz);
 
 		if (index === -1) {
 			index = classes.length;
 			classes[index] = clazz;
-			types[index] = type || new CustomType(clazz);
-			optional[index] = optional || new CustomType(clazz).optional();
+			types[index] = typeType || new CustomType(clazz);
+			optional[index] = optionalType || new CustomType(clazz).optional();
 		}
 
 		return index;

@@ -73,7 +73,7 @@
 				message = this.validateType(args[i], types[i]);
 
 				if (message)
-					return message + " at index --[" + i + "]--";
+					return message + ". Argument index " + i + ".";
 			}
 		},
 
@@ -96,16 +96,16 @@
 			switch (type) {
 
 				case 'COUNT_MIN':
-					return "Invalid call, expected --[" + expected +
-						"]-- arguments at minimum, but --[" + recived + "]-- recived.";
+					return "Invalid arguments count: expected " + expected +
+						" arguments at minimum, but " + recived + " recived.";
 
 				case 'COUNT_MAX':
-					return "Invalid call, expected --[" + expected +
-						"]-- arguments at maximum, but --[" + recived + "]-- recived.";
+					return "Invalid arguments count: expected " + expected +
+						" arguments at maximum, but " + recived + " recived.";
 
 				case 'INVALID_TYPE':
-					return "Invalid call, expected a --" + expected.toString() +
-						"-- but recived " + this.printObj(recived);
+					return "Invalid type: expected a " + expected.toString() +
+						" but recived " + this.printObj(recived);
 
 			}
 		},
