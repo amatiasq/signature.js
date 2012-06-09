@@ -100,8 +100,8 @@ Warning: Invalid type: expected a [class Boolean] but recived --[hi]-- (string)
 Method are chainable
 --------------------
 
-> var sample = signature(String, Number).returns(Boolean)
->                .impl(function(name, count) { return true })
+> var sample = signature(String, Number).returns(Boolean).impl(
+>                function(name, count) { return true })
 
 
 
