@@ -86,8 +86,7 @@ Log: 123456
 Validate return value
 ---------------------
 
-> sample = signature().returns(String);
-> sample.returns(Boolean)
+> sample = signature().returns(Boolean)
 
 > sample.impl(function() { return "hi";	})
 > sample()
@@ -101,7 +100,8 @@ Warning: Invalid type: expected a [class Boolean] but recived --[hi]-- (string)
 Method are chainable
 --------------------
 
-> var sample = signature(String, Number).returns(Boolean).impl(function(name, count) { return true })
+> var sample = signature(String, Number).returns(Boolean)
+>                .impl(function(name, count) { return true })
 
 
 
