@@ -1,0 +1,6 @@
+[submodule "deps/jsbase"]
+	path = deps/jsbase
+	url = http://github.com/amatiasq/jsbase
+[submodule "deps/mecha.js"]
+	path = deps/mecha.js
+	url = http://github.com/amatiasq/mecha.js
