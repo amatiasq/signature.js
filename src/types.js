@@ -43,6 +43,18 @@ signature.Type = (function() {
 	});
 	var NativeType = Type.extend();
 
+	var NullType = NativeType.extend({
+		constructor: function() { },
+
+		is: function(obj) {
+			return obj === null || typeof obj === 'undefined';
+		},
+
+		toString: function() {
+			return 'null';
+		}
+	});
+
 	var ObjectType = NativeType.extend({
 		constructor: function() {
 			this.base(Object);
@@ -89,6 +101,7 @@ signature.Type = (function() {
 		String,
 		Function,
 
+		null,
 		Object,
 		Array,
 		Date
@@ -99,6 +112,7 @@ signature.Type = (function() {
 		new TypeofType(String, 'string'),
 		new TypeofType(Function, 'function'),
 
+		new NullType(),
 		new ObjectType(),
 		new MultiIframeType(Array, 'Array'),
 		new MultiIframeType(Date, 'Date')
@@ -109,6 +123,7 @@ signature.Type = (function() {
 		new TypeofType(String, 'string').optional(),
 		new TypeofType(Function, 'function').optional(),
 
+		null,
 		new ObjectType().optional(),
 		new MultiIframeType(Array, 'Array').optional(),
 		new MultiIframeType(Date, 'Date').optional()
@@ -138,6 +153,9 @@ signature.Type = (function() {
 	};
 
 	Type.optionalFromClass = function(clazz) {
+		if (clazz === null)
+			throw new Error('Null cannot be optional');
+
 		return optional[getClassIndex(clazz)];
 	};
 

@@ -129,9 +129,6 @@
 
 	var proto = {
 
-		returnType: Type.optionalFromClass(Object),
-		implementation: null,
-
 		impl: function(funct) {
 			this.data.impl(funct);
 			return this;
