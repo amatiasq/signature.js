@@ -1,12 +1,17 @@
 describe('signature function', function() {
 
 	function test(message, funct) {
-		it(message, function() {
+		function handler() {
 			var expect = sinon.mock(signature).expects('warn');
 			funct(expect)
 			expect.verify();
 			signature.warn.restore();
-		});
+		}
+		handler.toString = function() {
+			return funct.toString();
+		};
+
+		it(message, handler);
 	}
 
 	function SampleClass() { }
@@ -61,11 +66,11 @@ describe('signature function', function() {
 		callback(SubClass, new SampleClass, ++count);
 	}
 
-	function expectFailed(spy, count, type, value) {
-		if (spy.callCount === count)
-			return;
-		debugger;
-		throw new Error('Type ' + (type && type.name) + " doesn't fail with value --[" + value + ']-- (' + (typeof value) + ')')
+	function expectCalled(spy, count, type, value) {
+		if (spy.callCount !== count) {
+			debugger;
+			throw new Error('Type ' + (type && type.name) + " doesn't fail with value --[" + value + ']-- (' + (typeof value) + ')');
+		}
 	}
 
 
@@ -109,7 +114,7 @@ describe('signature function', function() {
 			sut(true, false);
 		});
 
-		test("should fail when a object of this type is sent", function(fail) {
+		test("should pass when a object of this type is sent", function(fail) {
 			fail.never();
 
 			eachValidValue(function(type, value, count) {
@@ -122,7 +127,7 @@ describe('signature function', function() {
 
 			eachInvalidValue(function(type, value, count) {
 				signature(type)(value);
-				expectFailed(fail, count, type, value);
+				expectCalled(fail, count, type, value);
 			});
 		});
 	});
@@ -150,11 +155,12 @@ describe('signature function', function() {
 			});
 		});
 
-		test("should fail if argument is null or undefined", function(fail) {
+		test("should fail with any argument who is not the expected type", function(fail) {
 			fail.exactly(eachInvalidValue.count);
 
-			eachInvalidValue(function(type, value) {
+			eachInvalidValue(function(type, value, count) {
 				signature(Boolean, type)(true, value);
+				expectCalled(fail, count, type, value);
 			});
 		});
 	});
@@ -163,11 +169,43 @@ describe('signature function', function() {
 
 		test("should allow us to set a function to be executed if the signature success", function(fail) {
 			fail.never();
+			var spy = sinon.spy();
 
-			eachValidValue(function(type, value) {
-				signature(type).impl()
+			eachValidValue(function(type, value, count) {
+				signature(type).impl(spy)(value);
+				expectCalled(spy, count, type, value);
 			});
 		});
+
+		test("should call the implementation even if the validation fails", function(fail) {
+			fail.exactly(eachInvalidValue.count);
+			var spy = sinon.spy();
+
+			eachInvalidValue(function(type, value, count) {
+				signature(type).impl(spy)(value);
+				expectCalled(spy, count, type, value);
+			});
+		});
+	});
+
+	describe("return value validation", function() {
+
+		test("should pass if the returned value is of the expected type", function(fail) {
+			fail.never();
+
+			eachValidValue(function(type, value) {
+				signature().returns(type).impl(function() { return value })();
+			});
+		});
+
+		test("should fail with any incompatible value", function(fail) {
+			fail.exactly(eachInvalidValue.count);
+
+			eachInvalidValue(function(type, value, count) {
+				signature().returns(type).impl(function() { return value })();
+				expectCalled(fail, count, type, value);
+			});
+		})
 
 	});
 });
