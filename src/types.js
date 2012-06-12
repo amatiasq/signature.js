@@ -84,8 +84,8 @@ signature.Type = (function() {
 			this.name = "Object";
 		},
 
-		isImpl: function() {
-			return true;
+		isImpl: function(obj) {
+			return obj !== null && typeof obj !== 'undefined';
 		}
 	});
 

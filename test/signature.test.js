@@ -39,14 +39,18 @@ describe('signature function', function() {
 		var count = 0,
 			i, len, j, jlen;
 
+		// Every value except null ones should pass with Object
 		for (i = 0, len = validValues.length; i < len; i++)
-			for (j = 0, len = validValues[i].length; j < len; j++)
-				callback(Object, validValues[i][j], ++count);
+			if (i !== 1)
+				for (j = 0, len = validValues[i].length; j < len; j++)
+					callback(Object, validValues[i][j], ++count);
 
+		// Test every type with it's valid values
 		for (i = 1, len = types.length; i < len; i++)
 			for (j = 0, jlen = validValues[i].length; j < jlen; j++)
 				callback(types[i], validValues[i][j], ++count);
 
+		// Test custom classes and subclasses
 		callback(SampleClass, new SampleClass, ++count);
 		callback(SampleClass, new SubClass, ++count);
 		callback(SubClass, new SubClass, ++count);
@@ -57,13 +61,26 @@ describe('signature function', function() {
 		var count = 0,
 			i, len, j, jlen, k, klen;
 
+		// Object should fail with null values
+		for (i = 0, len = validValues[1].length; i < len; i++)
+			callback(Object, validValues[1][i], ++count);
+
+		// Test each type with all values except itself
 		for (i = 1, len = types.length; i < len; i++)
 			for (j = 0, jlen = validValues.length; j < jlen; j++)
 				if (j !== i)
 					for (k = 0, klen = validValues[j].length; k < klen; k++)
 						callback(types[i], validValues[j][k], ++count);
 
+		// A superclass isn't a valid value
 		callback(SubClass, new SampleClass, ++count);
+	}
+
+	forEachType(function(a, count) { forEachType.count = count });
+	function forEachType(callback) {
+		callback(Object, 1);
+		for (var i = 2, len = types.length; i < len; i++)
+			callback(types[i], i);
 	}
 
 	function expectCalled(spy, count, type, value) {
@@ -190,6 +207,18 @@ describe('signature function', function() {
 
 	describe("return value validation", function() {
 
+		test("should fail if a value is expected and nothing is returned", function(fail) {
+			fail.exactly(forEachType.count * 3);
+
+			forEachType(function(type, count) {
+				signature().returns(type).impl(function() { })();
+				signature().returns(type).impl(function() { return null })();
+				signature().returns(type).impl(function() { return undefined })();
+
+				expectCalled(fail, count * 3, type);
+			})
+		})
+
 		test("should pass if the returned value is of the expected type", function(fail) {
 			fail.never();
 
@@ -208,4 +237,68 @@ describe('signature function', function() {
 		})
 
 	});
+
+	describe("Optional value", function() {
+
+		it("should fail if we try to make null optional", function() {
+			expect(function() {
+				opt(null);
+			}).toThrowError();
+		});
+
+		describe("As return value", function() {
+
+			test("should pass with nullable values if it's optional", function(fail) {
+				fail.never();
+
+				forEachType(function(type) {
+					signature().returns(opt(type)).impl(function() { });
+					signature().returns(opt(type)).impl(function() { return null });
+					signature().returns(opt(type)).impl(function() { return undefined });
+				});
+			});
+		});
+
+		describe("As argument", function() {
+
+			test("should pass with any type if no value, null or undefined is passed", function(fail) {
+				fail.never();
+
+				forEachType(function(type) {
+					var sign = signature(opt(type));
+
+					sign();
+					sign(null);
+					sign(undefined);
+				});
+			});
+
+			test("should fail if only the second of two arguments is optional and no argument is passed", function(fail) {
+				fail.exactly(forEachType.count * 3);
+
+				forEachType(function(type, count) {
+					signature(type, opt(type))();
+					signature(type, opt(type))(null, null);
+					signature(type, opt(type))(undefined, undefined);
+
+					expectCalled(fail, count * 3, type);
+				});
+			});
+
+			test("should pass if many arguments are optional and one or many are not passed", function(fail) {
+				fail.never();
+
+				eachValidValue(function(type, value, count) {
+					if (type === null)
+						return;
+
+					signature(type, opt(type))(value);
+					signature(type, opt(type))(value, null);
+					signature(type, opt(type))(value, undefined);
+				});
+			})
+
+		});
+
+	})
 });
