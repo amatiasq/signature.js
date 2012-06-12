@@ -156,9 +156,7 @@
 		return signature;
 	}
 
-	signature.registerClass = function(clazz, name, test) {
-		Type.registerClass(clazz, name, test);
-	};
+	signature.Type = Type;
 
 	signature.warn = function() {
 		console.warn.apply(console, arguments);

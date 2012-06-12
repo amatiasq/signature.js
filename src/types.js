@@ -166,9 +166,16 @@ signature.Type = (function() {
 		list: [],
 
 		register: function(creator) {
-			for (var i = 0, len = this.list.length; i < len; i++)
-				if (this.list[i].priority <= creator.priority)
+			if (typeof creator.canHandle !== 'function' ||
+				typeof creator.create !== 'function' ||
+				typeof creator.priority !== 'number')
+				throw new Error("A creator should match signature.Type.CreatorInstance interface");
+
+			for (var i = 0, len = this.list.length; i < len; i++) {
+				if (this.list[i].priority >= creator.priority) {
 					break;
+				}
+			}
 			this.list.splice(i, 0, creator);
 		},
 
@@ -222,6 +229,9 @@ signature.Type = (function() {
 
 
 	var CustomTypeCreator = CreatorInterface.extend({
+
+		priority: CreatorInterface.LAST_PRIORITY,
+
 		canHandle: function(type) {
 			return true;
 		},
@@ -238,35 +248,3 @@ signature.Type = (function() {
 	return Type;
 
 })();
-
-/*
-var Interface = (function() {
-
-	var Interface = Base.extend({
-		isImplementedBy: function() { }
-	});
-
-	var InterfaceType = Type.extend({
-		isImpl: function(obj) {
-			return this.clazz.isImplementedBy(obj);
-		}
-	});
-
-	var InterfaceCreator = Type.CreatorInterface.extend({
-		priority: Type.CreatorInterface.FIRST_PRIORITY,
-
-		canHandle: function(clazz) {
-			return Interface.isInterface(clazz);
-		},
-
-		create: function(iface) {
-			return new InterfaceType(iface)
-		}
-	});
-
-	Type.registerCreator(InterfaceCreator);
-
-	return Interface;
-
-})()
-*/
