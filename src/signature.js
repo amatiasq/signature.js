@@ -123,11 +123,29 @@
 			return this;
 		},
 
+		clone: function() {
+			var clon = new SignatureClass();
+			clon.types = this.types;
+			clon.min = this.min;
+			clon.max = this.max;
+			clon.returnType = this.returnType;
+			clon.implementation = null;
+			return clon;
+		},
+
 		returns: function(type) {
 			this.returnType = Type.normalize(type);
 		}
 	};
 
+
+	function dataToSignature(data) {
+		var funct = data.exec.bind(data);
+		funct.data = data;
+		funct.impl = proto.impl;
+		funct.returns = proto.returns;
+		return funct;
+	}
 
 	var proto = {
 
@@ -139,6 +157,10 @@
 		returns: function(type) {
 			this.data.returns(type);
 			return this;
+		},
+
+		clone: function() {
+			return dataToSignature(this.data.clone());
 		}
 	};
 
@@ -147,13 +169,7 @@
 	}
 
 	function signature() {
-		var data = new SignatureClass().setTypes(array(arguments)),
-			signature = data.exec.bind(data);
-
-		signature.data = data;
-		signature.impl = proto.impl;
-		signature.returns = proto.returns;
-		return signature;
+		return dataToSignature(new SignatureClass().setTypes(array(arguments)));
 	}
 
 	signature.Type = Type;
