@@ -5,10 +5,33 @@ var signature = {};
 
 signature.Type = (function() {
 
-	var Type = Base.extend({
+	function extend(config) {
+		function intermediate() { }
+		intermediate.prototype = this.prototype;
+		config = config || {};
+
+		if (config.hasOwnProperty('constructor')) {
+			var clazz = config.constructor;
+		} else {
+			var parent = this;
+			var clazz = function() {
+				parent.apply(this, arguments);
+			};
+		}
+
+		var proto = clazz.prototype = new intermediate;
+
+		for (var i in config)
+			if (config.hasOwnProperty(i))
+				proto[i] = config[i];
+
+		clazz.extend = extend;
+		return clazz;
+	}
+
+	var Type = extend.call(Object, {
 
 		constructor: function(clazz) {
-			this.base();
 			this.name = clazz.name;
 			this.clazz = clazz;
 			this.isOptional = false;
@@ -36,7 +59,7 @@ signature.Type = (function() {
 
 	var CustomType = Type.extend({
 		constructor: function(clazz, name, test) {
-			this.base(clazz);
+			Type.call(this, clazz);
 			this.name = name || this.name;
 			this.isImpl = test || this.isImpl;
 		}
@@ -57,7 +80,7 @@ signature.Type = (function() {
 
 	var ObjectType = NativeType.extend({
 		constructor: function() {
-			this.base(Object);
+			NativeType.call(this, Object);
 			this.name = "Object";
 		},
 
@@ -68,7 +91,7 @@ signature.Type = (function() {
 
 	var MultiIframeType = NativeType.extend({
 		constructor: function(clazz, name) {
-			this.base(clazz);
+			NativeType.call(this, clazz);
 			this.name = name;
 			this.text = "[object " + name + "]";
 		},
@@ -85,7 +108,7 @@ signature.Type = (function() {
 
 	var TypeofType = NativeType.extend({
 		constructor: function(clazz, type) {
-			this.base(clazz);
+			NativeType.call(this, clazz);
 			this.type = type;
 			this.name = this.type.charAt(0).toUpperCase() + this.type.substr(1)
 		},

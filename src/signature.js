@@ -5,11 +5,13 @@
 	}
 
 	var var_args = '...',
-		SignatureError = Base.extend.call(Error),
-		SignatureDefinitionError = Base.extend.call(Error);
+		SignatureError = Error,
+		SignatureDefinitionError = Error;
 
-	var SignatureClass = Base.extend({
+	function SignatureClass() { };
+	SignatureClass.prototype = {
 
+		constructor: SignatureClass,
 		returnType: Type.optionalFromClass(Object),
 
 		setTypes: function(classes) {
@@ -124,7 +126,7 @@
 		returns: function(type) {
 			this.returnType = Type.normalize(type);
 		}
-	});
+	};
 
 
 	var proto = {
