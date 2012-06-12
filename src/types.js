@@ -160,6 +160,7 @@ signature.Type = (function() {
 		create: function(type) { },
 	});
 	CreatorInterface.FIRST_PRIORITY = 0;
+	CreatorInterface.DEFAULT_PRIORITY = 10;
 	CreatorInterface.LAST_PRIORITY = 20;
 
 	var Creators = {

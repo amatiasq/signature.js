@@ -6,7 +6,8 @@
 
 	var var_args = '...',
 		SignatureError = Error,
-		SignatureDefinitionError = Error;
+		SignatureDefinitionError = Error,
+		signatureFlag = {};
 
 	function SignatureClass() { };
 	SignatureClass.prototype = {
@@ -141,6 +142,7 @@
 
 	function dataToSignature(data) {
 		function funct() { data.exec(this, array(arguments)); }
+		funct.prototype = signatureFlag;
 		funct.data = data;
 		funct.impl = proto.impl;
 		funct.returns = proto.returns;
@@ -178,6 +180,19 @@
 	signature.warn = function() {
 		console.warn.apply(console, arguments);
 	};
+
+	Type.registerCreator({
+		priority: Type.CreatorInterface.DEFAULT_PRIORITY,
+
+		canHandle: function(clazz) {
+			return clazz && clazz.prototype === signatureFlag;
+		},
+
+		create: function(obj) {
+			return typeof obj === 'function';
+		}
+	});
+
 
 	window.signature = signature;
 	window.opt = opt;
