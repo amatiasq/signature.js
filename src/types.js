@@ -154,7 +154,7 @@ signature.Type = (function() {
 
 
 
-	var CreatorInterface = Base.extend({
+	var CreatorInterface = extend.call(Object, {
 		priority: 10,
 		canHandle: function(type) { },
 		create: function(type) { },
