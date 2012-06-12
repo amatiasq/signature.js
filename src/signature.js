@@ -44,13 +44,13 @@
 			return this;
 		},
 
-		exec: function() {
-			var error = this.validateArguments(array(arguments));
+		exec: function(scope, args) {
+			var error = this.validateArguments(args);
 			if (error)
 				this.notify(error);
 
 			if (this.implementation) {
-				var result = this.implementation.apply(this, arguments);
+				var result = this.implementation.apply(scope, args);
 
 				error = this.validateReturnValue(result);
 				if (error)
@@ -71,7 +71,7 @@
 				return this.generateMessage('COUNT_MAX', this.max, len);
 
 
-			for (var i = 0; i < len; i++) {
+			for (var i = 0, len = this.types.length; i < len; i++) {
 				message = this.validateType(args[i], types[i]);
 
 				if (message)
@@ -84,7 +84,7 @@
 		},
 
 		notify: function(message) {
-			var caller = arguments.callee.caller.caller;
+			var caller = arguments.callee.caller.caller.caller;
 			var at = "\nAt function: " + (caller ? caller.toString() : "(anonymous)");
 			signature.warn(message + at);
 		},
@@ -140,10 +140,11 @@
 
 
 	function dataToSignature(data) {
-		var funct = data.exec.bind(data);
+		function funct() { data.exec(this, array(arguments)); }
 		funct.data = data;
 		funct.impl = proto.impl;
 		funct.returns = proto.returns;
+		funct.clone = proto.clone;
 		return funct;
 	}
 

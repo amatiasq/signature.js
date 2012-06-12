@@ -203,6 +203,30 @@ describe('signature function', function() {
 				expectCalled(spy, count, type, value);
 			});
 		});
+
+		test("should pass argument to the implementation class", function(fail) {
+			fail.never();
+
+			var spy = sinon.spy();
+			spy.toString = function() { return 'sinon.spy()' };
+
+			eachValidValue(function(type, value, count) {
+				signature(type).impl(spy)(value);
+				expect(spy).called.withExactly(value);
+			});
+		});
+
+		test("should pass every arguments to implementation class", function(fail) {
+			fail.never();
+
+			var spy = sinon.spy();
+			spy.toString = function() { return 'sinon.spy()' };
+
+			eachValidValue(function(type, value, count) {
+				signature(type, type, type).impl(spy)(value, value, value);
+				expect(spy).called.withExactly(value, value, value);
+			});
+		});
 	});
 
 	describe("return value validation", function() {
