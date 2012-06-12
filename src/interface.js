@@ -25,7 +25,10 @@ var Interface = (function() {
 		if (typeof obj[method] !== 'function')
 			throw new Error('Method --[' + method + ']-- is not implemented in the object');
 
-		obj[method] = signature.clone().impl(obj[method]);
+		var sign = signature.clone();
+		sign.method = method;
+
+		obj[method] = sign.impl(obj[method]);
 	}
 
 
