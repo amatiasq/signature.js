@@ -143,6 +143,20 @@
 			return this;
 		},
 
+		wrap: function(method) {
+			if (!this.implementation)
+				return this.impl(method);
+
+			var base = this.implementation;
+			this.implementation = function wrapper() {
+				var original = this.base;
+				this.base = base;
+				var result = method.apply(this, arguments);
+				this.base = original;
+				return result;
+			};
+		}
+
 		clone: function() {
 			var clon = new SignatureClass();
 			clon.types = this.types;
@@ -167,6 +181,7 @@
 		funct.returns = proto.returns;
 		funct.replace = proto.replace;
 		funct.clone = proto.clone;
+		funct.wrap = proto.wrap;
 		return funct;
 	}
 
@@ -174,6 +189,11 @@
 
 		impl: function(funct) {
 			this.data.impl(funct);
+			return this;
+		},
+
+		wrap: function(method) {
+			this.data.wrap(method);
 			return this;
 		},
 

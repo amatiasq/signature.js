@@ -28,7 +28,7 @@ var Interface = (function() {
 		var sign = signature.clone();
 		sign.method = method;
 
-		obj[method] = sign.impl(obj[method]);
+		obj[method] = sign.wrap(obj[method]);
 	}
 
 
