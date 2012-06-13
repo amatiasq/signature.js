@@ -165,7 +165,7 @@
 				this.base = original;
 				return result;
 			};
-		}
+		},
 
 		clone: function() {
 			var clon = new SignatureClass();
@@ -197,14 +197,16 @@
 
 
 	function dataToSignature(data) {
-		function funct() { data.exec(this, array(arguments)); }
-		funct.prototype = signatureFlag;
-		funct.data = data;
+		function signature() {
+			return data.exec(this, array(arguments));
+		}
+		signature.prototype = signatureFlag;
+		signature.data = data;
 
 		for (var i in proto)
-			funct[i] = proto[i];
+			signature[i] = proto[i];
 
-		return funct;
+		return signature;
 	}
 
 	var proto = {
@@ -262,6 +264,10 @@
 		console.warn.apply(console, arguments);
 	};
 
+	signature.isSignature = function(obj) {
+		return obj && obj.prototype === signatureFlag
+	};
+
 	window.signature = signature;
 	window.opt = opt;
 
@@ -273,7 +279,7 @@
 		priority: Type.CreatorInterface.DEFAULT_PRIORITY,
 
 		canHandle: function(clazz) {
-			return clazz && clazz.prototype === signatureFlag;
+			return signature.isSignature(clazz);
 		},
 
 		create: function(obj) {
