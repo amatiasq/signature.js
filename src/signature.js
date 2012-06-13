@@ -113,6 +113,25 @@
 			}
 		},
 
+		replace: function(name, object) {
+			for (var i = 0, len = this.types.length; i < len; i++)
+				this.types[i] = this.deferredToType(this.types[i], name, object);
+
+			this.returnType = this.deferredToType(this.returnType, name, object);
+		},
+
+		deferredToType: function(original, name, object) {
+			if (!(original instanceof DeferredType) || original.name !== name)
+				return original;
+
+			var result = Type.fromClass(object);
+
+			if (original.isOptional)
+				result.optional();
+
+			return result;
+		},
+
 		printObj: function(value) {
 			return "--[" + value + "]-- (" + (typeof value) + ")";
 		},
@@ -146,6 +165,7 @@
 		funct.data = data;
 		funct.impl = proto.impl;
 		funct.returns = proto.returns;
+		funct.replace = proto.replace;
 		funct.clone = proto.clone;
 		return funct;
 	}
@@ -159,6 +179,11 @@
 
 		returns: function(type) {
 			this.data.returns(type);
+			return this;
+		},
+
+		replace: function(name, object) {
+			this.data.replace(name, object);
 			return this;
 		},
 
@@ -181,6 +206,13 @@
 		console.warn.apply(console, arguments);
 	};
 
+	window.signature = signature;
+	window.opt = opt;
+
+
+
+	// SIGNATURE TYPE
+
 	Type.registerCreator({
 		priority: Type.CreatorInterface.DEFAULT_PRIORITY,
 
@@ -189,12 +221,49 @@
 		},
 
 		create: function(obj) {
-			return typeof obj === 'function';
+			return Type.fromClass(Function);
 		}
 	});
 
 
-	window.signature = signature;
-	window.opt = opt;
+	// DEFERRED TYPE
+
+	var DeferredType = Type.extend({
+		constructor: function(name) {
+			Type.call(this, { name: name });
+			this.clazz = null;
+		},
+
+		isImpl: function(obj) {
+			if (!window[this.name])
+				throw new Error("Expected type is not a class, is a string: " + this.name);
+
+			var clazz = this.clazz = window[this.name];
+			var type = Type.fromClass(clazz);
+
+			if (this.isOptional)
+				type.optional();
+
+			this.isImpl = function(obj) {
+				return type.isImpl(obj)
+			};
+
+			return this.isImpl(obj);
+		}
+	});
+
+	Type.registerCreator({
+		priority: Type.CreatorInterface.DEFAULT_PRIORITY,
+
+		canHandle: function(clazz) {
+			return typeof clazz === 'string' || clazz instanceof String;
+		},
+
+		create: function(name) {
+			return new DeferredType(name);
+		}
+	});
+
+
 
 })(signature.Type);

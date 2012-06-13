@@ -12,8 +12,11 @@ signature.Type.registerClass(Integer, 'Integer', function(val) {
 // Interface
 
 var IEmitter = Interface({
+
     on: signature(String, Function).returns(null),
+
     off: signature(String, Function).returns(null),
+
     emit: signature(String, '...').returns(String)
 });
 
@@ -43,7 +46,12 @@ var Emitter = {
 
 IEmitter(Emitter);
 
-Emitter.on('pepe', function(str1, str2, num) { console.log('Recived: ' + str1 + ' ' + str2 + ' ' + num) });
+Emitter.on('pepe', function(str1, str2, num) {
+	console.log('Recived: ' + str1 + ' ' + str2 + ' ' + num)
+});
+
 setTimeout(function() {
+
     Emitter.emit('pepe', "hola", "mundo", 2)
+
 }, 2000)

@@ -262,6 +262,41 @@ describe('signature function', function() {
 
 	});
 
+	describe("Deferred type - a type can be a string to be parsed deferred", function() {
+
+		test("should pass if the type is defined on window", function(fail) {
+			fail.never();
+
+			eachValidValue(function(type, value) {
+				if (type && window[type.name] === type)
+					signature(type.name)(value);
+			});
+		})
+
+		test("should throw error if the object is not on window and it was not specified", function(fail) {
+			fail.never();
+
+			eachValidValue(function(type, value) {
+				if (type && window[type.name] !== type) {
+					expect(function() {
+						signature(type.name)(value);
+					}).toThrowError();
+				}
+			});
+		});
+
+		test("should pass if the type is defined on window", function(fail) {
+			fail.never();
+
+			eachValidValue(function(type, value) {
+				var name = (type && type.name) + "";
+				var sut = signature(name);
+				sut.replace(name, type);
+				sut(value);
+			});
+		})
+	});
+
 	describe("Optional value", function() {
 
 		it("should fail if we try to make null optional", function() {
