@@ -2,6 +2,7 @@ var Interface = (function() {
 
 	var ifaceFlag = {};
 	var slice = Array.prototype.slice;
+	var ifaceProp = '__interfaces__';
 
 	function createInterface(parents, members, signatures) {
 		return function Interface(obj) {
@@ -14,10 +15,10 @@ var Interface = (function() {
 			for (var i = 0, len = members.length; i < len; i++)
 				validateMethod(obj, members[i], signatures[members[i]]);
 
-			if (obj.hasOwnProperty('__interfaces__'))
-				obj.__interfaces__.push(Interface);
+			if (obj.hasOwnProperty(ifaceProp))
+				obj[ifaceProp].push(Interface);
 			else
-				obj.__interfaces__ = [Interface];
+				obj[ifaceProp] = [Interface];
 		}
 	}
 
@@ -25,9 +26,7 @@ var Interface = (function() {
 		if (typeof obj[method] !== 'function')
 			throw new Error('Method --[' + method + ']-- is not implemented in the object');
 
-		var sign = signature.clone();
-		sign.method = method;
-
+		var sign = signature.clone().setName(method);
 		obj[method] = sign.wrap(obj[method]);
 	}
 
@@ -50,22 +49,34 @@ var Interface = (function() {
 			return this;
 		};
 
-		iface.isImplementedBy = function(obj) {
-			var last = obj.__interfaces__;
-			if (!last)
+		iface.setName = function(name) {
+			this._name = name;
+			this.replace(name, this);
+
+			for (var i = 0, len = members.length; i < len; i++)
+				config[members[i]].setClass(name);
+
+			return this;
+		};
+
+		iface.toString = function() {
+			return '[interface ' + (this._name || 'Interface') + ']';
+		}
+
+		iface.isImplementedBy = function(current) {
+			if (current === null || typeof current === 'undefined')
 				return false;
 
-			if (last.indexOf(this) !== -1)
+			var list = current[ifaceProp];
+			if (!list)
+				return false;
+
+			if (list.indexOf(this) !== -1)
 				return true;
 
-			var current = obj;
-			while (current = Object.getPrototypeOf(current)) {
-				if (current.__interfaces__ !== last) {
-					last = current.__interfaces__;
-					if (last.indexOf(this) !== -1)
-						return true;
-				}
-			}
+			while (current = Object.getPrototypeOf(current))
+				if (current[ifaceProp] !== list)
+					return this.isImplementedBy(current);
 		};
 
 		return iface;
@@ -80,6 +91,10 @@ var Interface = (function() {
 
 		doImplements: function(obj) {
 			return true;
+		},
+
+		toString: function() {
+			return this.clazz.toString();
 		}
 	});
 

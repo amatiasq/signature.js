@@ -14,6 +14,16 @@
 
 		constructor: SignatureClass,
 		returnType: Type.optionalFromClass(Object),
+		name: '',
+		classname: '',
+
+		setName: function(name) {
+			this.name = name;
+		},
+
+		setClass: function(classname) {
+			this.classname = classname;
+		},
 
 		setTypes: function(classes) {
 			var min = 0,
@@ -99,15 +109,15 @@
 			switch (type) {
 
 				case 'COUNT_MIN':
-					return "Invalid arguments count: expected " + expected +
+					return this.toString() + " Invalid arguments count: expected " + expected +
 						" arguments at minimum, but " + recived + " recived.";
 
 				case 'COUNT_MAX':
-					return "Invalid arguments count: expected " + expected +
+					return this.toString() + " Invalid arguments count: expected " + expected +
 						" arguments at maximum, but " + recived + " recived.";
 
 				case 'INVALID_TYPE':
-					return "Invalid type: expected a " + expected.toString() +
+					return this.toString() + " Invalid type: expected a " + expected.toString() +
 						" but recived " + this.printObj(recived);
 
 			}
@@ -159,6 +169,8 @@
 
 		clone: function() {
 			var clon = new SignatureClass();
+			clon.name = this.name;
+			clon.classname = this.classname;
 			clon.types = this.types;
 			clon.min = this.min;
 			clon.max = this.max;
@@ -169,6 +181,17 @@
 
 		returns: function(type) {
 			this.returnType = Type.normalize(type);
+		},
+
+		toString: function() {
+			var name;
+			if (this.name && this.classname)
+				name = this.classname + '.' + this.name;
+			else if (this.name)
+				name = this.name;
+			else
+				name = 'Signature';
+			return '[signature ' + name + ']';
 		}
 	};
 
@@ -177,11 +200,10 @@
 		function funct() { data.exec(this, array(arguments)); }
 		funct.prototype = signatureFlag;
 		funct.data = data;
-		funct.impl = proto.impl;
-		funct.returns = proto.returns;
-		funct.replace = proto.replace;
-		funct.clone = proto.clone;
-		funct.wrap = proto.wrap;
+
+		for (var i in proto)
+			funct[i] = proto[i];
+
 		return funct;
 	}
 
@@ -205,6 +227,20 @@
 		replace: function(name, object) {
 			this.data.replace(name, object);
 			return this;
+		},
+
+		setName: function(name) {
+			this.data.setName(name);
+			return this;
+		},
+
+		setClass: function(classname) {
+			this.data.setClass(classname);
+			return this;
+		},
+
+		toString: function() {
+			return this.data.toString();
 		},
 
 		clone: function() {
