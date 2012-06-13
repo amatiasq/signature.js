@@ -44,6 +44,12 @@ var Interface = (function() {
 		var iface = createInterface(superInterfaces, members, config);
 		iface.prototype = ifaceFlag;
 
+		iface.replace = function(name, object) {
+			for (var i = 0, len = members.length; i < len; i++)
+				config[members[i]].replace(name, object);
+			return this;
+		};
+
 		iface.isImplementedBy = function(obj) {
 			var last = obj.__interfaces__;
 			if (!last)
