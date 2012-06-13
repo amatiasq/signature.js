@@ -5,7 +5,7 @@
 	}
 
 	var var_args = '...',
-		SignatureError = Error,
+		//SignatureError = Error,
 		SignatureDefinitionError = Error,
 		signatureFlag = {};
 
@@ -14,6 +14,7 @@
 
 		constructor: SignatureClass,
 		returnType: Type.optionalFromClass(Object),
+		isChainable: false,
 		name: '',
 		classname: '',
 
@@ -33,6 +34,9 @@
 
 			for (var i = 0, len = classes.length; i < len; i++) {
 				type = classes[i];
+
+				if (typeof type === 'undefined')
+					throw new SignatureDefinitionError("Passed undefined as type for: " + this.toString());
 
 				if (type === var_args) {
 					if (i !== len - 1)
@@ -63,7 +67,7 @@
 			if (this.implementation) {
 				var result = this.implementation.apply(scope, args);
 
-				error = this.validateReturnValue(result);
+				error = this.validateReturnValue(result, scope);
 				if (error)
 					this.notify(error);
 
@@ -90,8 +94,12 @@
 			}
 		},
 
-		validateReturnValue: function(value) {
-			return this.validateType(value, this.returnType);
+		validateReturnValue: function(value, self) {
+			if (!this.isChainable)
+				return this.validateType(value, this.returnType);
+
+			if (value !== self)
+				return this.generateMessage('NOT_CHAINABLE', self, value);
 		},
 
 		notify: function(message) {
@@ -119,6 +127,10 @@
 				case 'INVALID_TYPE':
 					return this.toString() + " Invalid type: expected a " + expected.toString() +
 						" but recived " + this.printObj(recived);
+
+				case 'NOT_CHAINABLE':
+					return this.toString() + " Should be chainable, but recived " +
+						this.printObj(recived);
 
 			}
 		},
@@ -153,20 +165,6 @@
 			return this;
 		},
 
-		wrap: function(method) {
-			if (!this.implementation)
-				return this.impl(method);
-
-			var base = this.implementation;
-			this.implementation = function wrapper() {
-				var original = this.base;
-				this.base = base;
-				var result = method.apply(this, arguments);
-				this.base = original;
-				return result;
-			};
-		},
-
 		clone: function() {
 			var clon = new SignatureClass();
 			clon.name = this.name;
@@ -175,12 +173,20 @@
 			clon.min = this.min;
 			clon.max = this.max;
 			clon.returnType = this.returnType;
+			clon.isChainable = this.isChainable;
 			clon.implementation = null;
 			return clon;
 		},
 
 		returns: function(type) {
+			if (typeof type === 'undefined')
+				throw new SignatureDefinitionError("Passed undefined as type for: " + this.toString());
+
 			this.returnType = Type.normalize(type);
+		},
+
+		chain: function() {
+			this.isChainable = true;
 		},
 
 		toString: function() {
@@ -216,13 +222,13 @@
 			return this;
 		},
 
-		wrap: function(method) {
-			this.data.wrap(method);
+		returns: function(type) {
+			this.data.returns(type);
 			return this;
 		},
 
-		returns: function(type) {
-			this.data.returns(type);
+		chain: function() {
+			this.data.chain();
 			return this;
 		},
 

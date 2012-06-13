@@ -19,6 +19,8 @@ var Interface = (function() {
 				obj[ifaceProp].push(Interface);
 			else
 				obj[ifaceProp] = [Interface];
+
+			return obj;
 		}
 	}
 
@@ -27,7 +29,7 @@ var Interface = (function() {
 			throw new Error('Method --[' + method + ']-- is not implemented in the object');
 
 		var sign = signature.clone().setName(method);
-		obj[method] = sign.wrap(obj[method]);
+		obj[method] = sign.impl(obj[method]);
 	}
 
 
