@@ -1,337 +1,114 @@
-(function(Type) {
+// jshint unused:false
 
-	function array(args, start, end) {
-		return Array.prototype.slice.call(args, start, end);
+// Disable possible strict violation message
+// jshint -W040
+
+define(function() {
+	'use strict';
+
+	function warn(message) {
+		console.warn(message);
 	}
 
-	var var_args = '...',
-		//SignatureError = Error,
-		SignatureDefinitionError = Error,
-		signatureFlag = {};
+	function type(obj) {
+		var ctor = Object.prototype.toString.call(obj);
+		return ctor.substr(8, ctor.length - 1).toLowerCase();
+	}
 
-	function SignatureClass() { };
-	SignatureClass.prototype = {
+	function toArray(obj) {
+		Array.prototype.slice.call(obj);
+	}
 
-		constructor: SignatureClass,
-		returnType: Type.optionalFromClass(Object),
-		isChainable: false,
-		name: '',
-		classname: '',
+	function last(array) {
+		return array[array.length - 1];
+	}
 
-		setName: function(name) {
-			this.name = name;
-		},
+	function isType(type, value) {
+		// TODO :D
+	}
 
-		setClass: function(classname) {
-			this.classname = classname;
-		},
+	function returns(value) {
+		this.data.returnType = value;
+	}
 
-		setTypes: function(classes) {
-			var min = 0,
-				max = 0,
-				type,
-				types = [];
+	function clone() {
+		var copy = createSignature();
+		copy.data = this.data;
+		return copy;
+	}
 
-			for (var i = 0, len = classes.length; i < len; i++) {
-				type = classes[i];
+	function impl(fn) {
+		this.implementation = fn;
+	}
 
-				if (typeof type === 'undefined')
-					throw new SignatureDefinitionError("Passed undefined as type for: " + this.toString());
+	function test(data, args) {
+		var min = this.data.min;
+		var max = this.data.max;
+		var types = this.data.types;
+		var optionals = this.data.optionals;
+		var isRest = this.data.isRest;
+		var validableArgs = args.length < max ? args.length : max;
+		var expected;
 
-				if (type === var_args) {
-					if (i !== len - 1)
-						throw new SignatureDefinitionError('Only the las argument can be var_args');
+		if (args.length < min)
+			return 'Not enought arguments, minimum is ' + min;
 
-					max = Infinity;
-					break;
-				}
+		if (!isRest && args.length > max)
+			return 'Too many arguments, maximum is ' + max;
 
-				type = types[i] = Type.normalize(type);
-				max++;
+		for (var i = 0; i < validableArgs; i++) {
+			expected = i < types.length ? types[i] : optionals[i - types.length];
+			if (!isType(expected, args[i]))
+				return 'Expected ' + expected + ' but --[' + args[i] + ']--(' + type(args[i]) + ')-- found.';
+		}
+	}
 
-				if (!type.isOptional)
-					min++;
+	function createSignature() {
+		function sig() {
+			var args = toArray(arguments);
+			var error = sig.test(args);
+			if (error) warn(error);
+
+			if (sig.data.isRest) {
+				var rest = args.slice(sig.data.max);
+				args.length = sig.data.max;
+				args.push(rest);
 			}
 
-			this.types = types;
-			this.min = min;
-			this.max = max;
-			return this;
-		},
+			if (!sig.implementation) return;
 
-		exec: function(scope, args) {
-			var error = this.validateArguments(args);
-			if (error)
-				this.notify(error);
-
-			if (this.implementation) {
-				var result = this.implementation.apply(scope, args);
-
-				error = this.validateReturnValue(result, scope);
-				if (error)
-					this.notify(error);
-
-				return result;
-			}
-		},
-
-		validateArguments: function(args) {
-			var len = args.length,
-				types = this.types,
-				message;
-
-			if (len < this.min)
-				return this.generateMessage('COUNT_MIN', this.min, len);
-			if (len > this.max)
-				return this.generateMessage('COUNT_MAX', this.max, len);
-
-
-			for (var i = 0, len = this.types.length; i < len; i++) {
-				message = this.validateType(args[i], types[i]);
-
-				if (message)
-					return message + ". Argument index " + i + ".";
-			}
-		},
-
-		validateReturnValue: function(value, self) {
-			if (!this.isChainable)
-				return this.validateType(value, this.returnType);
-
-			if (value !== self)
-				return this.generateMessage('NOT_CHAINABLE', self, value);
-		},
-
-		notify: function(message) {
-			var caller = arguments.callee.caller.caller.caller;
-			var at = "\nAt function: " + (caller ? caller.toString() : "(anonymous)");
-			signature.warn(message + at);
-		},
-
-		validateType: function(value, type) {
-			if (!type.is(value))
-				return this.generateMessage('INVALID_TYPE', type, value);
-		},
-
-		generateMessage: function(type, expected, recived) {
-			switch (type) {
-
-				case 'COUNT_MIN':
-					return this.toString() + " Invalid arguments count: expected " + expected +
-						" arguments at minimum, but " + recived + " recived.";
-
-				case 'COUNT_MAX':
-					return this.toString() + " Invalid arguments count: expected " + expected +
-						" arguments at maximum, but " + recived + " recived.";
-
-				case 'INVALID_TYPE':
-					return this.toString() + " Invalid type: expected a " + expected.toString() +
-						" but recived " + this.printObj(recived);
-
-				case 'NOT_CHAINABLE':
-					return this.toString() + " Should be chainable, but recived " +
-						this.printObj(recived);
-
-			}
-		},
-
-		replace: function(name, object) {
-			for (var i = 0, len = this.types.length; i < len; i++)
-				this.types[i] = this.deferredToType(this.types[i], name, object);
-
-			this.returnType = this.deferredToType(this.returnType, name, object);
-		},
-
-		deferredToType: function(original, name, object) {
-			if (!(original instanceof DeferredType) || original.name !== name)
-				return original;
-
-			var result = Type.fromClass(object);
-
-			if (original.isOptional)
-				result.optional();
+			var result = sig.implementation.apply(this, args);
+			if (sig.data.returnType)
+				warn('Expected ' + sig.data.returnType + ' but --[' + result + ']--(' + type(result) + ')-- found.');
 
 			return result;
-		},
-
-		printObj: function(value) {
-			return "--[" + value + "]-- (" + (typeof value) + ")";
-		},
-
-		impl: function(funct) {
-			// TODO: validate funct
-
-			this.implementation = funct;
-			return this;
-		},
-
-		clone: function() {
-			var clon = new SignatureClass();
-			clon.name = this.name;
-			clon.classname = this.classname;
-			clon.types = this.types;
-			clon.min = this.min;
-			clon.max = this.max;
-			clon.returnType = this.returnType;
-			clon.isChainable = this.isChainable;
-			clon.implementation = null;
-			return clon;
-		},
-
-		returns: function(type) {
-			if (typeof type === 'undefined')
-				throw new SignatureDefinitionError("Passed undefined as type for: " + this.toString());
-
-			this.returnType = Type.normalize(type);
-		},
-
-		chain: function() {
-			this.isChainable = true;
-		},
-
-		toString: function() {
-			var name;
-			if (this.name && this.classname)
-				name = this.classname + '.' + this.name;
-			else if (this.name)
-				name = this.name;
-			else
-				name = 'Signature';
-			return '[signature ' + name + ']';
 		}
-	};
 
-
-	function dataToSignature(data) {
-		function signature() {
-			return data.exec(this, array(arguments));
-		}
-		signature.prototype = signatureFlag;
-		signature.data = data;
-
-		for (var i in proto)
-			signature[i] = proto[i];
-
-		return signature;
-	}
-
-	var proto = {
-
-		impl: function(funct) {
-			this.data.impl(funct);
-			return this;
-		},
-
-		returns: function(type) {
-			this.data.returns(type);
-			return this;
-		},
-
-		chain: function() {
-			this.data.chain();
-			return this;
-		},
-
-		replace: function(name, object) {
-			this.data.replace(name, object);
-			return this;
-		},
-
-		setName: function(name) {
-			this.data.setName(name);
-			return this;
-		},
-
-		setClass: function(classname) {
-			this.data.setClass(classname);
-			return this;
-		},
-
-		toString: function() {
-			return this.data.toString();
-		},
-
-		clone: function() {
-			return dataToSignature(this.data.clone());
-		}
-	};
-
-	function opt(type) {
-		return Type.optionalFromClass(type);
+		sig.test = test;
+		sig.returns = returns;
+		sig.impl = impl;
+		sig.clone = clone;
+		return sig;
 	}
 
 	function signature() {
-		return dataToSignature(new SignatureClass().setTypes(array(arguments)));
+		var types = toArray(arguments);
+		var optionals = type(last(types)) === 'array' ? types.pop() : [];
+		var isRest = !!(last(types) === '...' ? types.pop() : false);
+		var min = types.length;
+		var max = types.length + optionals.length;
+		var sig = createSignature();
+
+		sig.data = {
+			types: types,
+			optionals: optionals,
+			isRest: isRest,
+			returnType: null,
+			min: min,
+			max: max,
+		};
+		return sig;
 	}
 
-	signature.Type = Type;
-
-	signature.warn = function() {
-		console.warn.apply(console, arguments);
-	};
-
-	signature.isSignature = function(obj) {
-		return obj && obj.prototype === signatureFlag
-	};
-
-	window.signature = signature;
-	window.opt = opt;
-
-
-
-	// SIGNATURE TYPE
-
-	Type.registerCreator({
-		priority: Type.CreatorInterface.DEFAULT_PRIORITY,
-
-		canHandle: function(clazz) {
-			return signature.isSignature(clazz);
-		},
-
-		create: function(obj) {
-			return Type.fromClass(Function);
-		}
-	});
-
-
-	// DEFERRED TYPE
-
-	var DeferredType = Type.extend({
-		constructor: function(name) {
-			Type.call(this, { name: name });
-			this.clazz = null;
-		},
-
-		isImpl: function(obj) {
-			if (!window[this.name])
-				throw new Error("Expected type is not a class, is a string: " + this.name);
-
-			var clazz = this.clazz = window[this.name];
-			var type = Type.fromClass(clazz);
-
-			if (this.isOptional)
-				type.optional();
-
-			this.isImpl = function(obj) {
-				return type.isImpl(obj)
-			};
-
-			return this.isImpl(obj);
-		}
-	});
-
-	Type.registerCreator({
-		priority: Type.CreatorInterface.DEFAULT_PRIORITY,
-
-		canHandle: function(clazz) {
-			return typeof clazz === 'string' || clazz instanceof String;
-		},
-
-		create: function(name) {
-			return new DeferredType(name);
-		}
-	});
-
-
-
-})(signature.Type);
+	return signature;
+});
