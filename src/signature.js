@@ -1,114 +1,192 @@
-// jshint unused:false
+(function() {
+  'use strict';
 
-// Disable possible strict violation message
-// jshint -W040
+  var handlers = [];
+  function push(value) {
+    handlers.push(value);
+  }
 
-define(function() {
-	'use strict';
+  function register() {
+    Array.prototype.slice.call(arguments).forEach(push);
+    handlers.sort(sorter);
+  }
 
-	function warn(message) {
-		console.warn(message);
-	}
+  function validate(type, value) {
+    for (var i = 0; i < handlers.length; i++)
+      if (handlers[i].canHandle(type))
+        return handlers[i].handler(type, value);
 
-	function type(obj) {
-		var ctor = Object.prototype.toString.call(obj);
-		return ctor.substr(8, ctor.length - 1).toLowerCase();
-	}
+    return false;
+  }
 
-	function toArray(obj) {
-		Array.prototype.slice.call(obj);
-	}
+  function test(types, optionals, isRest, args) {
+    if (args.length < types.length)
+      return 'Not enought arguments';
 
-	function last(array) {
-		return array[array.length - 1];
-	}
+    if (!isRest && args.length > types.length + optionals.length)
+      return 'Too many arguments';
 
-	function isType(type, value) {
-		// TODO :D
-	}
+    var error;
+    args.some(function(value, index) {
+      var type = index < types.length ?
+        types[index] :
+        optionals[index - types.length];
 
-	function returns(value) {
-		this.data.returnType = value;
-	}
+      if (validate(type, value))
+        return;
 
-	function clone() {
-		var copy = createSignature();
-		copy.data = this.data;
-		return copy;
-	}
+      error = 'Argument ' + index + ' not valid. Expected ' +
+        print(type) + ' but received ' + print(value);
+      return true;
+    });
 
-	function impl(fn) {
-		this.implementation = fn;
-	}
+    return error;
+  }
 
-	function test(data, args) {
-		var min = this.data.min;
-		var max = this.data.max;
-		var types = this.data.types;
-		var optionals = this.data.optionals;
-		var isRest = this.data.isRest;
-		var validableArgs = args.length < max ? args.length : max;
-		var expected;
+  function signature_creator() {
+    var types = Array.prototype.slice.call(arguments);
+    var isRest = types[types.length - 1] === '...' ? !!types.pop() : false;
+    var optionals = Array.isArray(types[types.length - 1]) ? types.pop() : [];
+    signature.test = test.bind(null, types, isRest, optionals);
 
-		if (args.length < min)
-			return 'Not enought arguments, minimum is ' + min;
+    function signature() {
+      var args = Array.prototype.slice.call(arguments);
+      var error = signature.test(args);
+      if (error) throw new Error(error);
+    }
 
-		if (!isRest && args.length > max)
-			return 'Too many arguments, maximum is ' + max;
+    return signature;
+  }
 
-		for (var i = 0; i < validableArgs; i++) {
-			expected = i < types.length ? types[i] : optionals[i - types.length];
-			if (!isType(expected, args[i]))
-				return 'Expected ' + expected + ' but --[' + args[i] + ']--(' + type(args[i]) + ')-- found.';
-		}
-	}
+  window.signature = signature_creator;
 
-	function createSignature() {
-		function sig() {
-			var args = toArray(arguments);
-			var error = sig.test(args);
-			if (error) warn(error);
+  register(
+    null_handler(),
+    object_handler(),
+    array_handler(),
+    typeof_handler(),
+    toString_handler(),
+    instanceOf_handler(),
+    prototype_handler(),
+    ducktype_handler(),
+  );
 
-			if (sig.data.isRest) {
-				var rest = args.slice(sig.data.max);
-				args.length = sig.data.max;
-				args.push(rest);
-			}
+  return;
 
-			if (!sig.implementation) return;
 
-			var result = sig.implementation.apply(this, args);
-			if (sig.data.returnType)
-				warn('Expected ' + sig.data.returnType + ' but --[' + result + ']--(' + type(result) + ')-- found.');
+  function print(obj) {
+    return '--[' + obj + ']--(' + (typeof obj) + ')--';
+  }
 
-			return result;
-		}
+  function sorter(a, b) {
+    return b.priority - a.priority;
+  }
 
-		sig.test = test;
-		sig.returns = returns;
-		sig.impl = impl;
-		sig.clone = clone;
-		return sig;
-	}
+  function equals(expected) {
+    return function(value) {
+      return value === expected;
+    };
+  }
 
-	function signature() {
-		var types = toArray(arguments);
-		var optionals = type(last(types)) === 'array' ? types.pop() : [];
-		var isRest = !!(last(types) === '...' ? types.pop() : false);
-		var min = types.length;
-		var max = types.length + optionals.length;
-		var sig = createSignature();
+  function null_handler() {
+    return {
+      priority: 1.1,
+      canHandle: equals(null),
+      handler: function(type, value) {
+        if (value !== null)
+          return 'Expected null, received ' + print(obj) + ' instead.';
+      }
+    };
+  }
 
-		sig.data = {
-			types: types,
-			optionals: optionals,
-			isRest: isRest,
-			returnType: null,
-			min: min,
-			max: max,
-		};
-		return sig;
-	}
+  function object_handler() {
+    return {
+      priority: 1,
+      canHandle: equals(Object),
+      handler: function() {
+        return;
+      }
+    };
+  }
 
-	return signature;
-});
+  function array_handler() {
+    return {
+      priority: 1,
+      canHandle: equals(Array),
+      handler: function(type, value) {
+        return Array.isArray(value);
+      }
+    };
+  }
+
+  function typeof_handler() {
+    var typeOfNatives = {
+      'Boolean': 'boolean',
+      'Number': 'number',
+      'String': 'string',
+      'Function': 'function',
+    };
+
+    return {
+      priority: 1,
+      canHandle: function(type) {
+        return typeOfNatives.hasOwnProperty(type.name);
+      },
+      handler: function(type, value) {
+        return typeof value === typeOfNatives[type.name];
+      }
+    };
+  }
+
+  function toString_handler() {
+    var natives = {
+      'Date': '[object Date]',
+      'Regex': '[object Regex]',
+    };
+
+    return {
+      priority: 0.9,
+      canHandle: function(type) {
+        return natives.hasOwnProperty(type.name);
+      },
+      handler: function(type, value) {
+        return Object.prototype.toString.call(value) === natives[type.name];
+      }
+    };
+  }
+
+  function instanceOf_handler() {
+    return {
+      priority: 0.1,
+      canHandle: function(type) {
+        return typeof type === 'function';
+      },
+      handler: function(type, value) {
+        return value instanceof type;
+      }
+    };
+  }
+
+  function basic_handler() {
+    return {
+      priority: 0,
+      canHandle: function() {
+        return true;
+      },
+      handler: function(type, value) {
+        if (type.isPrototypeOf(value))
+          return true;
+
+        Object.
+      }
+    };
+  }
+
+  function ducktype_handler() {
+    return {
+      priority: -0.1,
+      canHandle: function()
+    };
+  }
+
+})();
